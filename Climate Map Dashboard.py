@@ -357,7 +357,7 @@ def generate_climate_narrative(city_data, city_name, country_name):
             title = "MODERATE WARMING TREND"
             message = f"""
             <div class="{narrative_class}">
-                <h3>{emoji} {title} {emoji}</h3>
+                <h3 style="color: black;">{emoji} {title} {emoji}</h3>
                 <p><strong>{city_name}, {country_name}</strong> shows a moderate warming trend of 
                 <strong>{temp_change:.1f}°C</strong> since the 1980s.</p>
                 <p>Current anomaly: <strong>{latest_anomaly:+.1f}°C</strong> above the 1961-1990 baseline</p>
