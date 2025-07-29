@@ -817,7 +817,7 @@ with st.container():
 # Call to Action
 st.markdown("""
     <div class="sdg-card">
-        <h3>🌱 Take Climate Action Today!</h3>
+        <h3 style="color: black;">🌱 Take Climate Action Today!</h3>
         <p>Support renewable energy, reduce carbon footprint, and advocate for climate policies. Small and smart choices to mitigate increasing temperatures:</p>
         <ul style="color: black;">
           <li>Create green spaces like parks, urban forests, rooftop gardens, community gardens, and green roofs or walls.</li>
