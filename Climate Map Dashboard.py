@@ -288,33 +288,100 @@ country_mapping = {
 # Load and prepare the dataset
 @st.cache_data
 def load_data():
-    # Load historical data
-    df1 = pd.read_csv("sample_temp_1950-2025_1.csv")
-    df2 = pd.read_csv("sample_temp_1950-2025_2.csv")
-    df = pd.concat([df1, df2], axis=0).reset_index(drop=True)
-    df.fillna("NA", inplace=True)
-    df.columns = df.columns.str.lower()
+    try:
+        # Load historical data with error handling
+        st.write("Loading historical data...")
+        
+        # Check if files exist and load them
+        try:
+            df1 = pd.read_csv("sample_temp_1950-2025_1.csv")
+            st.write(f"✅ Loaded sample_temp_1950-2025_1.csv: {df1.shape[0]} rows, {df1.shape[1]} columns")
+            st.write(f"Columns: {list(df1.columns)}")
+        except Exception as e:
+            st.error(f"❌ Error loading sample_temp_1950-2025_1.csv: {e}")
+            return None, None
+        
+        try:
+            df2 = pd.read_csv("sample_temp_1950-2025_2.csv")
+            st.write(f"✅ Loaded sample_temp_1950-2025_2.csv: {df2.shape[0]} rows, {df2.shape[1]} columns")
+            st.write(f"Columns: {list(df2.columns)}")
+        except Exception as e:
+            st.error(f"❌ Error loading sample_temp_1950-2025_2.csv: {e}")
+            return None, None
+        
+        # Combine historical data
+        df = pd.concat([df1, df2], axis=0).reset_index(drop=True)
+        df.fillna("NA", inplace=True)
+        df.columns = df.columns.str.lower()
+        
+        st.write(f"✅ Combined historical data: {df.shape[0]} rows, {df.shape[1]} columns")
+        st.write(f"Combined columns: {list(df.columns)}")
 
-    if 'latitude' not in df.columns:
-        df['latitude'] = df['lat']
-    if 'lng' not in df.columns and 'longitude' in df.columns:
-        df['lng'] = df['longitude']
+        # Handle coordinate columns
+        if 'latitude' not in df.columns:
+            if 'lat' in df.columns:
+                df['latitude'] = df['lat']
+            else:
+                st.error("❌ No latitude or lat column found in historical data!")
+                return None, None
+                
+        if 'lng' not in df.columns and 'longitude' in df.columns:
+            df['lng'] = df['longitude']
+        elif 'lng' not in df.columns and 'lon' in df.columns:
+            df['lng'] = df['lon']
+        elif 'lng' not in df.columns:
+            st.error("❌ No longitude/lng/lon column found in historical data!")
+            return None, None
 
-    df['country_name'] = df['country'].map(country_mapping)
+        # Handle country mapping (only if country_mapping is defined)
+        try:
+            df['country_name'] = df['country'].map(country_mapping)
+        except NameError:
+            st.warning("⚠️ country_mapping not defined, using country column as-is")
+            df['country_name'] = df['country'] if 'country' in df.columns else 'Unknown'
+        
+        # Load prediction data
+        st.write("Loading prediction data...")
+        try:
+            df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
+            st.write(f"✅ Loaded monthly_pred_temp_2025-2029.csv: {df_pred.shape[0]} rows, {df_pred.shape[1]} columns")
+            st.write(f"Prediction columns: {list(df_pred.columns)}")
+            
+            df_pred.columns = df_pred.columns.str.lower()
+
+            # Handle coordinate columns for predictions
+            if 'latitude' not in df_pred.columns:
+                if 'lat' in df_pred.columns:
+                    df_pred['latitude'] = df_pred['lat']
+                else:
+                    st.error("❌ No latitude or lat column found in prediction data!")
+                    return df, None
+                    
+            if 'lng' not in df_pred.columns and 'longitude' in df_pred.columns:
+                df_pred['lng'] = df_pred['longitude']
+            elif 'lng' not in df_pred.columns and 'lon' in df_pred.columns:
+                df_pred['lng'] = df_pred['lon']
+            elif 'lng' not in df_pred.columns:
+                st.error("❌ No longitude/lng/lon column found in prediction data!")
+                return df, None
+
+            # Handle country mapping for predictions
+            try:
+                df_pred['country_name'] = df_pred['country'].map(country_mapping)
+            except NameError:
+                st.warning("⚠️ country_mapping not defined for predictions, using country column as-is")
+                df_pred['country_name'] = df_pred['country'] if 'country' in df_pred.columns else 'Unknown'
+            
+            return df, df_pred
+            
+        except Exception as e:
+            st.error(f"❌ Error loading prediction data: {e}")
+            st.write("Continuing with historical data only...")
+            return df, None
     
-    # Load prediction data
-    df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
-    df_pred.fillna("NA", inplace=True)
-    df_pred.columns = df_pred.columns.str.lower()
-
-    if 'latitude' not in df_pred.columns:
-        df_pred['latitude'] = df_pred['lat']
-    if 'lng' not in df_pred.columns and 'longitude' in df_pred.columns:
-        df_pred['lng'] = df_pred['longitude']
-
-    df_pred['country_name'] = df_pred['country'].map(country_mapping)
-    
-    return df, df_pred
+    except Exception as e:
+        st.error(f"❌ Critical error in load_data(): {e}")
+        return None, None
 
 def calculate_temperature_anomaly(df, baseline_start=1961, baseline_end=1990):
     """Calculate temperature anomaly based on baseline period (1961-1990)"""
@@ -465,20 +532,27 @@ def create_prediction_heatmap(df_pred, selected_city):
     if city_data.empty:
         return None
     
-    # Sort by year
-    city_data = city_data.sort_values('year')
+    # Sort by date and extract year for x-axis
+    city_data = city_data.sort_values('date')
+    
+    # Convert date to datetime if it's not already and extract year
+    if not pd.api.types.is_datetime64_any_dtype(city_data['date']):
+        city_data['date'] = pd.to_datetime(city_data['date'])
+    
+    # Create year column for heatmap x-axis
+    city_data['year'] = city_data['date'].dt.year
     
     # Create heatmap with anomaly scale (single row for the city)
     fig = go.Figure(data=go.Heatmap(
         z=[city_data['temperature_anomaly'].values],
-        x=city_data['year'].values,
+        x=city_data['date'].values,
         y=[selected_city],
         zmin=-3,
         zmax=3,
         colorscale='RdBu_r',
         showscale=False,
         hovertemplate='<b>%{y}</b><br>' +
-                      'Year: %{x}<br>' +
+                      'Date: %{x}<br>' +
                       'Predicted Anomaly: %{z:.2f}°C<br>' +
                       '<extra></extra>'
     ))
@@ -487,7 +561,7 @@ def create_prediction_heatmap(df_pred, selected_city):
         title=f"Predicted Temperature Anomalies for {selected_city} (2025-2029)",
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Year",
+        xaxis_title="Date",
         yaxis=dict(showticklabels=False, gridcolor='rgba(0,0,0,0.1)'),
         height=350,
         font=dict(size=12),
@@ -560,7 +634,7 @@ def create_prediction_trend_chart(df_pred, selected_city):
     if not selected_city:
         return None
     
-    city_data = df_pred[df_pred['city'] == selected_city].sort_values('date')
+    city_data = df_pred[df_pred['city'] == selected_city].sort_values('year')
     
     if city_data.empty:
         return None
@@ -569,25 +643,25 @@ def create_prediction_trend_chart(df_pred, selected_city):
     
     # Add predicted temperature line
     fig.add_trace(go.Scatter(
-        x=city_data['date'],
+        x=city_data['year'],
         y=city_data['temperature'],
         mode='lines+markers',
         name='Predicted Temperature',
         line=dict(color='#FF8C00', width=3),
         marker=dict(size=6, color='#FF8C00'),
-        hovertemplate='Date: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
+        hovertemplate='Year: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
     ))
     
     # Add prediction trend line
-    z = np.polyfit(city_data['date'], city_data['temperature'], 1)
+    z = np.polyfit(city_data['year'], city_data['temperature'], 1)
     p = np.poly1d(z)
     fig.add_trace(go.Scatter(
-        x=city_data['date'],
-        y=p(city_data['date']),
+        x=city_data['year'],
+        y=p(city_data['year']),
         mode='lines',
         name='Prediction Trend',
         line=dict(color='#DC143C', width=4, dash='dash'),
-        hovertemplate='Date': %{x}<br>Trend: %{y:.1f}°C<extra></extra>'
+        hovertemplate='Year: %{x}<br>Trend: %{y:.1f}°C<extra></extra>'
     ))
     
     fig.update_layout(
@@ -595,7 +669,7 @@ def create_prediction_trend_chart(df_pred, selected_city):
         plot_bgcolor='rgba(255,255,255,0.9)',
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Date",
+        xaxis_title="Year",
         yaxis_title="Temperature (°C)",
         height=350,
         font=dict(size=12),
@@ -618,7 +692,7 @@ def create_combined_trend_chart(df, df_pred, selected_city):
         return None
     
     historical_data = df[df['city'] == selected_city].sort_values('year')
-    prediction_data = df_pred[df_pred['city'] == selected_city].sort_values('date')
+    prediction_data = df_pred[df_pred['city'] == selected_city].sort_values('year')
     
     if historical_data.empty and prediction_data.empty:
         return None
@@ -652,25 +726,25 @@ def create_combined_trend_chart(df, df_pred, selected_city):
     # Add predicted temperature line
     if not prediction_data.empty:
         fig.add_trace(go.Scatter(
-            x=prediction_data['date'],
+            x=prediction_data['year'],
             y=prediction_data['temperature'],
             mode='lines+markers',
             name='Predicted Temperature',
             line=dict(color='#FF8C00', width=3),
             marker=dict(size=4, color='#FF8C00'),
-            hovertemplate='Date: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
+            hovertemplate='Year: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
         ))
         
         # Add prediction trend line
-        z_pred = np.polyfit(prediction_data['date'], prediction_data['temperature'], 1)
+        z_pred = np.polyfit(prediction_data['year'], prediction_data['temperature'], 1)
         p_pred = np.poly1d(z_pred)
         fig.add_trace(go.Scatter(
-            x=prediction_data['date'],
-            y=p_pred(prediction_data['date']),
+            x=prediction_data['year'],
+            y=p_pred(prediction_data['year']),
             mode='lines',
             name='Prediction Trend',
             line=dict(color='#DC143C', width=3, dash='dot'),
-            hovertemplate='Date': %{x}<br>Prediction Trend: %{y:.1f}°C<extra></extra>'
+            hovertemplate='Year: %{x}<br>Prediction Trend: %{y:.1f}°C<extra></extra>'
         ))
     
     fig.update_layout(
@@ -678,7 +752,7 @@ def create_combined_trend_chart(df, df_pred, selected_city):
         plot_bgcolor='rgba(255,255,255,0.9)',
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Date",
+        xaxis_title="Year",
         yaxis_title="Temperature (°C)",
         height=400,
         font=dict(size=12),
@@ -707,16 +781,33 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Load data and calculate anomalies
-df, df_pred = load_data()
-df = calculate_temperature_anomaly(df)
+data_result = load_data()
 
-# Calculate baseline temperatures for predictions
-baseline_data = df[(df['year'] >= 1961) & (df['year'] <= 1990)]
-baseline_temps = baseline_data.groupby('city')['temperature'].mean().reset_index()
-baseline_temps.columns = ['city', 'baseline_temp']
+# Check if data loading was successful
+if data_result[0] is None:
+    st.error("❌ Failed to load data. Please check your CSV files.")
+    st.stop()
 
-# Calculate anomalies for prediction data
-df_pred = calculate_prediction_anomaly(df_pred, baseline_temps)
+df, df_pred = data_result
+
+# Only proceed if we have historical data
+if df is not None:
+    df = calculate_temperature_anomaly(df)
+    
+    # Calculate baseline temperatures for predictions (only if we have prediction data)
+    if df_pred is not None:
+        baseline_data = df[(df['year'] >= 1961) & (df['year'] <= 1990)]
+        baseline_temps = baseline_data.groupby('city')['temperature'].mean().reset_index()
+        baseline_temps.columns = ['city', 'baseline_temp']
+        
+        # Calculate anomalies for prediction data
+        df_pred = calculate_prediction_anomaly(df_pred, baseline_temps)
+        st.success("✅ Both historical and prediction data loaded successfully!")
+    else:
+        st.warning("⚠️ Only historical data available. Prediction features will be disabled.")
+else:
+    st.error("❌ No data available. Please check your files.")
+    st.stop()
 
 # Display key statistics
 latest_year = df['year'].max()
@@ -867,7 +958,7 @@ if st.session_state.selected_city is not None:
 
     # Get city data
     city_data = df[df['city'] == selected_city]
-    city_pred_data = df_pred[df_pred['city'] == selected_city]
+    city_pred_data = df_pred[df_pred['city'] == selected_city] if df_pred is not None else pd.DataFrame()
 
     if not city_data.empty:
         country_name = city_data['country_name'].iloc[0]
@@ -879,7 +970,7 @@ if st.session_state.selected_city is not None:
         """, unsafe_allow_html=True)
 
         # Historical Analysis Section
-        st.markdown("### 📊 Historical Analysis")
+        st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -894,7 +985,7 @@ if st.session_state.selected_city is not None:
         st.markdown(narrative, unsafe_allow_html=True)
         
         # Prediction Analysis Section
-        if not city_pred_data.empty:
+        if df_pred is not None and not city_pred_data.empty:
             st.markdown("### Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
@@ -923,6 +1014,8 @@ if st.session_state.selected_city is not None:
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
             """, unsafe_allow_html=True)
+        else:
+            st.info("No prediction data available for this city.")
         
         # Add button to clear selection
         if st.button("Clear Selection", key="clear_selection"):
@@ -933,7 +1026,7 @@ if st.session_state.selected_city is not None:
 if selected_cities:
     for city in selected_cities:
         city_data = df[df['city'] == city]
-        city_pred_data = df_pred[df_pred['city'] == city]
+        city_pred_data = df_pred[df_pred['city'] == city] if df_pred is not None else pd.DataFrame()
         
         if city_data.empty:
             continue
@@ -947,7 +1040,7 @@ if selected_cities:
         """, unsafe_allow_html=True)
 
         # Historical Analysis Section
-        st.markdown("###Historical Analysis")
+        st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -964,8 +1057,8 @@ if selected_cities:
             st.markdown(narrative, unsafe_allow_html=True)
         
         # Prediction Analysis Section
-        if not city_pred_data.empty:
-            st.markdown("###Future Predictions (2025-2029)")
+        if df_pred is not None and not city_pred_data.empty:
+            st.markdown("### Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
             combined_chart = create_combined_trend_chart(df, df_pred, city)
@@ -993,7 +1086,9 @@ if selected_cities:
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
             """, unsafe_allow_html=True)
-
+        else:
+            st.info("ℹ️ No prediction data available for this city.")
+            
 ## Show help message when no selections are made
 #if st.session_state.selected_city is None and not selected_cities:
 #    st.markdown("""
