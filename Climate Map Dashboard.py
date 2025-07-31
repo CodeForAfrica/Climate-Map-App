@@ -961,6 +961,58 @@ if selected_cities:
         if narrative:
             st.markdown(narrative, unsafe_allow_html=True)
 
+        # ================= Prediction Analysis Section =================
+if df_pred is not None:
+    # Prepare prediction data only once
+    df_pred_processed = df_pred.copy()
+
+    # Parse date if present (e.g., "Jul-2025")
+    if 'date' in df_pred.columns:
+        df_pred_processed['date_parsed'] = pd.to_datetime(
+            df_pred_processed['date'], format='%b-%Y'
+        )
+        df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
+        df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
+
+# Display analysis for selected cities
+if selected_cities:
+    for city in selected_cities:
+        city_data = df[df['city'] == city].copy()
+        if city_data.empty:
+            continue
+
+        country_name = city_data['country_name'].iloc[0]
+        st.markdown(f"""
+            <div class="subtitle">
+                Detailed Climate Analysis for {city}, {country_name}
+            </div>
+        """, unsafe_allow_html=True)
+
+        # ---------------- Historical Analysis ----------------
+        st.markdown("### Historical Analysis")
+        col1, col2 = st.columns(2)
+
+        # Aggregate historical data by year for trend plot
+        hist_yearly = city_data.groupby('year', as_index=False).agg({'temperature':'mean'})
+        
+        with col1:
+            trend_chart = px.line(
+                hist_yearly,
+                x='year', y='temperature',
+                title=f"Historical Temperature Trend - {city}",
+                markers=True
+            )
+            st.plotly_chart(trend_chart, use_container_width=True)
+
+        with col2:
+            heatmap = create_climate_heatmap(df, city)  # Already has month x year format
+            st.plotly_chart(heatmap, use_container_width=True)
+
+        # Optional narrative
+        narrative = generate_climate_narrative(city_data, city, country_name)
+        if narrative:
+            st.markdown(narrative, unsafe_allow_html=True)
+
         # ---------------- Prediction Analysis ----------------
         city_pred_data = pd.DataFrame()
         if df_pred is not None:
@@ -969,18 +1021,49 @@ if selected_cities:
         if not city_pred_data.empty:
             st.markdown("### Future Predictions (2025-2029)")
 
-            # Combined Historical + Predicted Trend
-            combined_chart = create_combined_trend_chart(df, df_pred_processed, city)
+            # 1️⃣ Aggregate predicted temperatures annually
+            pred_yearly = city_pred_data.groupby('year', as_index=False).agg({'temperature':'mean'})
+
+            # 2️⃣ Combined Historical + Predicted Trend
+            combined_yearly = pd.concat([
+                hist_yearly.assign(type='Historical'),
+                pred_yearly.assign(type='Predicted')
+            ])
+            combined_chart = px.line(
+                combined_yearly,
+                x='year', y='temperature',
+                color='type',
+                title=f"Historical vs Predicted Temperature Trend - {city}",
+                markers=True
+            )
             st.plotly_chart(combined_chart, use_container_width=True)
 
             col3, col4 = st.columns(2)
 
+            # 3️⃣ Annual Predicted Temperature Trend
             with col3:
-                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, city)
+                pred_trend_chart = px.bar(
+                    pred_yearly,
+                    x='year', y='temperature',
+                    title=f"Predicted Annual Temperature - {city}",
+                    text_auto='.1f'
+                )
                 st.plotly_chart(pred_trend_chart, use_container_width=True)
 
+            # 4️⃣ Predicted Anomaly Heatmap (Month vs Year)
             with col4:
-                pred_heatmap = create_prediction_heatmap(df_pred_processed, city)
+                heatmap_data = city_pred_data.pivot_table(
+                    index='month', columns='year', values='temperature_anomaly', aggfunc='mean'
+                )
+                # Convert month numbers to labels
+                heatmap_data.index = heatmap_data.index.map(lambda x: calendar.month_abbr[x])
+
+                pred_heatmap = px.imshow(
+                    heatmap_data,
+                    aspect='auto',
+                    color_continuous_scale='RdBu_r',
+                    title=f"Predicted Temperature Anomalies (Month-Year) - {city}"
+                )
                 st.plotly_chart(pred_heatmap, use_container_width=True)
 
             # Prediction Summary
