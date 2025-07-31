@@ -1014,7 +1014,7 @@ if selected_cities:
             st.markdown(narrative, unsafe_allow_html=True)
 
         # ---------------- Prediction Analysis ----------------
-        def create_temperature_trend_chart(df, city):
+def create_temperature_trend_chart(df, city):
     """Create temperature trend chart with proper annual aggregation"""
     city_data = df[df['city'] == city].copy()
     
