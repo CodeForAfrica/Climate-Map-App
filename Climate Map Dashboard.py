@@ -926,56 +926,56 @@ if selected_cities:
             city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
 
    if not city_pred_data.empty:
-    st.markdown("### Future Predictions (2025-2029)")
-
-    # Filter out 2025 for combined chart to start predictions at 2026
-    pred_yearly = city_pred_data.groupby('year', as_index=False)['temperature'].mean()
-    pred_yearly_filtered = pred_yearly[pred_yearly['year'] >= 2026]
-
-    # Combined historical + predicted
-    combined_yearly = pd.concat([
-        hist_yearly.assign(type='Historical'),
-        pred_yearly_filtered.assign(type='Predicted')
-    ])
-
-    combined_chart = px.line(
-        combined_yearly, x='year', y='temperature', color='type',
-        title=f"Historical vs Predicted Temperature Trend - {city}",
-        markers=True
-    )
-    st.plotly_chart(combined_chart, use_container_width=True)
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        pred_trend_chart = px.bar(
-            pred_yearly_filtered, x='year', y='temperature',
-            title=f"Predicted Annual Temperature - {city}", text_auto='.1f'
+        st.markdown("### Future Predictions (2025-2029)")
+    
+        # Filter out 2025 for combined chart to start predictions at 2026
+        pred_yearly = city_pred_data.groupby('year', as_index=False)['temperature'].mean()
+        pred_yearly_filtered = pred_yearly[pred_yearly['year'] >= 2026]
+    
+        # Combined historical + predicted
+        combined_yearly = pd.concat([
+            hist_yearly.assign(type='Historical'),
+            pred_yearly_filtered.assign(type='Predicted')
+        ])
+    
+        combined_chart = px.line(
+            combined_yearly, x='year', y='temperature', color='type',
+            title=f"Historical vs Predicted Temperature Trend - {city}",
+            markers=True
         )
-        st.plotly_chart(pred_trend_chart, use_container_width=True)
-
-    with col4:
-        # Create Month-Year Season (July to June)
-        heatmap_data = city_pred_data.copy()
-        heatmap_data['month_name'] = heatmap_data['month'].apply(lambda x: calendar.month_abbr[x])
-
-        # Reorder months starting from July
-        month_order = [7,8,9,10,11,12,1,2,3,4,5,6]
-        heatmap_data['month'] = pd.Categorical(heatmap_data['month'], categories=month_order, ordered=True)
-
-        # Pivot for heatmap: months as rows, years as columns
-        heatmap_pivot = heatmap_data.pivot_table(
-            index='month', columns='year', values='temperature_anomaly', aggfunc='mean'
-        )
-
-        # Rename index to month abbreviations in new order
-        heatmap_pivot.index = [calendar.month_abbr[m] for m in month_order]
-
-        pred_heatmap = px.imshow(
-            heatmap_pivot, aspect='auto', color_continuous_scale='RdBu_r',
-            title=f"Predicted Temperature Anomalies (Jul–Jun) - {city}"
-        )
-        st.plotly_chart(pred_heatmap, use_container_width=True)
+        st.plotly_chart(combined_chart, use_container_width=True)
+    
+        col3, col4 = st.columns(2)
+    
+        with col3:
+            pred_trend_chart = px.bar(
+                pred_yearly_filtered, x='year', y='temperature',
+                title=f"Predicted Annual Temperature - {city}", text_auto='.1f'
+            )
+            st.plotly_chart(pred_trend_chart, use_container_width=True)
+    
+        with col4:
+            # Create Month-Year Season (July to June)
+            heatmap_data = city_pred_data.copy()
+            heatmap_data['month_name'] = heatmap_data['month'].apply(lambda x: calendar.month_abbr[x])
+    
+            # Reorder months starting from July
+            month_order = [7,8,9,10,11,12,1,2,3,4,5,6]
+            heatmap_data['month'] = pd.Categorical(heatmap_data['month'], categories=month_order, ordered=True)
+    
+            # Pivot for heatmap: months as rows, years as columns
+            heatmap_pivot = heatmap_data.pivot_table(
+                index='month', columns='year', values='temperature_anomaly', aggfunc='mean'
+            )
+    
+            # Rename index to month abbreviations in new order
+            heatmap_pivot.index = [calendar.month_abbr[m] for m in month_order]
+    
+            pred_heatmap = px.imshow(
+                heatmap_pivot, aspect='auto', color_continuous_scale='RdBu_r',
+                title=f"Predicted Temperature Anomalies (Jul–Jun) - {city}"
+            )
+            st.plotly_chart(pred_heatmap, use_container_width=True)
         
             # Summary
             avg_pred_temp = city_pred_data['temperature'].mean()
