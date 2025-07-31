@@ -925,7 +925,7 @@ if selected_cities:
         if df_pred is not None:
             city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
 
-        if not city_pred_data.empty:
+   if not city_pred_data.empty:
     st.markdown("### Future Predictions (2025-2029)")
 
     # Filter out 2025 for combined chart to start predictions at 2026
@@ -976,7 +976,7 @@ if selected_cities:
             title=f"Predicted Temperature Anomalies (Jul–Jun) - {city}"
         )
         st.plotly_chart(pred_heatmap, use_container_width=True)
-
+        
             # Summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
