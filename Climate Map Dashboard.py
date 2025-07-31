@@ -145,7 +145,7 @@ st.markdown("""
             #background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             padding: 20px;
             border-radius: 12px;
-            color: white;
+            color: black;
             margin: 15px 0;
             #box-shadow: 0 6px 20px rgba(240,147,251,0.3);
             box-shadow: 0 4px 15px rgba(78,205,196,0.3);
