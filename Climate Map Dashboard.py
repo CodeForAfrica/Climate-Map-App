@@ -881,7 +881,7 @@ if st.session_state.selected_city is not None:
         """, unsafe_allow_html=True)
 
         # Historical Analysis Section
-        st.markdown("### 📊 Historical Analysis")
+        st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -949,7 +949,7 @@ if selected_cities:
         """, unsafe_allow_html=True)
 
         # Historical Analysis Section
-        st.markdown("### 📊 Historical Analysis")
+        st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -967,7 +967,7 @@ if selected_cities:
         
         # Prediction Analysis Section
         if not city_pred_data.empty:
-            st.markdown("### 🔮 Future Predictions (2025-2029)")
+            st.markdown("### Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
             combined_chart = create_combined_trend_chart(df, df_pred, city)
@@ -989,7 +989,7 @@ if selected_cities:
             
             st.markdown(f"""
                 <div class="climate-info">
-                    <h4>🔮 Prediction Summary for {city}</h4>
+                    <h4>Prediction Summary for {city}</h4>
                     <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
