@@ -882,6 +882,7 @@ if st.session_state.selected_city is not None:
 
 
 # --- Preprocess prediction data once ---
+# Preprocess prediction data once
 if df_pred is not None:
     df_pred_processed = df_pred.copy()
     if 'date' in df_pred.columns:
@@ -889,7 +890,7 @@ if df_pred is not None:
         df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
         df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
 
-# --- Display analysis for selected cities ---
+# Display analysis for selected cities
 if selected_cities:
     for city in selected_cities:
         city_data = df[df['city'] == city].copy()
@@ -898,98 +899,86 @@ if selected_cities:
 
         country_name = city_data['country_name'].iloc[0]
 
-        st.markdown(
-            f"<div class='subtitle'>Detailed Climate Analysis for {city}, {country_name}</div>",
-            unsafe_allow_html=True
-        )
+        st.markdown(f"<div class='subtitle'>Detailed Climate Analysis for {city}, {country_name}</div>", unsafe_allow_html=True)
 
-        # --- Historical Analysis ---
+        # Historical Analysis
         st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
         hist_yearly = city_data.groupby('year', as_index=False)['temperature'].mean()
 
         with col1:
-            trend_chart = px.line(
-                hist_yearly, x='year', y='temperature',
-                title=f"Historical Temperature Trend - {city}",
-                markers=True
-            )
+            trend_chart = px.line(hist_yearly, x='year', y='temperature',
+                                  title=f"Historical Temperature Trend - {city}",
+                                  markers=True)
             st.plotly_chart(trend_chart, use_container_width=True)
 
         with col2:
             heatmap = create_climate_heatmap(df, city)
             st.plotly_chart(heatmap, use_container_width=True)
 
-        # Optional narrative
         narrative = generate_climate_narrative(city_data, city, country_name)
         if narrative:
             st.markdown(narrative, unsafe_allow_html=True)
 
-        # --- Prediction Analysis ---
+        # Prediction Analysis
         city_pred_data = pd.DataFrame()
         if df_pred is not None:
             city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
 
-        if not city_pred_data.empty:
-            st.markdown("### Future Predictions (2025-2029)")
-
-            # Filter out 2025 to start predictions at 2026 for smoother combined chart
-            pred_yearly = city_pred_data.groupby('year', as_index=False)['temperature'].mean()
-            pred_yearly_filtered = pred_yearly[pred_yearly['year'] >= 2026]
-
-            # Combine historical + predicted for trend chart
-            combined_yearly = pd.concat([
-                hist_yearly.assign(type='Historical'),
-                pred_yearly_filtered.assign(type='Predicted')
-            ])
-
-            combined_chart = px.line(
-                combined_yearly, x='year', y='temperature', color='type',
-                title=f"Historical vs Predicted Temperature Trend - {city}",
-                markers=True
-            )
-            st.plotly_chart(combined_chart, use_container_width=True)
-
-            col3, col4 = st.columns(2)
-
-            # --- Line chart with trend line for predicted temperatures ---
-            with col3:
-                pred_trend_chart = px.line(
-                    pred_yearly_filtered, x='year', y='temperature',
-                    title=f"Predicted Annual Temperature - {city}",
+           if not city_pred_data.empty:
+                st.markdown("### Future Predictions (2025-2029)")
+            
+                # Filter out 2025 for combined chart to start predictions at 2026
+                pred_yearly = city_pred_data.groupby('year', as_index=False)['temperature'].mean()
+                pred_yearly_filtered = pred_yearly[pred_yearly['year'] >= 2026]
+            
+                # Combined historical + predicted
+                combined_yearly = pd.concat([
+                    hist_yearly.assign(type='Historical'),
+                    pred_yearly_filtered.assign(type='Predicted')
+                ])
+            
+                combined_chart = px.line(
+                    combined_yearly, x='year', y='temperature', color='type',
+                    title=f"Historical vs Predicted Temperature Trend - {city}",
                     markers=True
                 )
-                # Add OLS trend line
-                pred_trend_chart.update_traces(line_shape='linear')
-                st.plotly_chart(pred_trend_chart, use_container_width=True)
-
-            # --- Heatmap: July → June season ---
-            with col4:
-                heatmap_data = city_pred_data.copy()
-                heatmap_data['month_name'] = heatmap_data['month'].apply(lambda x: calendar.month_abbr[x])
-
-                # Reorder months starting from July
-                month_order = [7,8,9,10,11,12,1,2,3,4,5,6]
-                heatmap_data['month'] = pd.Categorical(
-                    heatmap_data['month'], categories=month_order, ordered=True
-                )
-
-                # Pivot for heatmap: months as rows, years as columns
-                heatmap_pivot = heatmap_data.pivot_table(
-                    index='month', columns='year', values='temperature_anomaly', aggfunc='mean'
-                )
-
-                # Rename index to month abbreviations
-                heatmap_pivot.index = [calendar.month_abbr[m] for m in month_order]
-
-                pred_heatmap = px.imshow(
-                    heatmap_pivot, aspect='auto', color_continuous_scale='RdBu_r',
-                    title=f"Predicted Temperature Anomalies (Jul–Jun) - {city}"
-                )
-                st.plotly_chart(pred_heatmap, use_container_width=True)
-
-            # --- Prediction Summary ---
+                st.plotly_chart(combined_chart, use_container_width=True)
+            
+                col3, col4 = st.columns(2)
+            
+                with col3:
+                    pred_trend_chart = px.bar(
+                        pred_yearly_filtered, x='year', y='temperature',
+                        title=f"Predicted Annual Temperature - {city}", text_auto='.1f'
+                    )
+                    st.plotly_chart(pred_trend_chart, use_container_width=True)
+            
+                with col4:
+                    # Create Month-Year Season (July to June)
+                    heatmap_data = city_pred_data.copy()
+                    heatmap_data['month_name'] = heatmap_data['month'].apply(lambda x: calendar.month_abbr[x])
+            
+                    # Reorder months starting from July
+                    month_order = [7,8,9,10,11,12,1,2,3,4,5,6]
+                    heatmap_data['month'] = pd.Categorical(heatmap_data['month'], categories=month_order, ordered=True)
+            
+                    # Pivot for heatmap: months as rows, years as columns
+                    heatmap_pivot = heatmap_data.pivot_table(
+                        index='month', columns='year', values='temperature_anomaly', aggfunc='mean'
+                    )
+            
+                    # Rename index to month abbreviations in new order
+                    heatmap_pivot.index = [calendar.month_abbr[m] for m in month_order]
+            
+                    pred_heatmap = px.imshow(
+                        heatmap_pivot, aspect='auto', color_continuous_scale='RdBu_r',
+                        title=f"Predicted Temperature Anomalies (Jul–Jun) - {city}"
+                    )
+                    st.plotly_chart(pred_heatmap, use_container_width=True)
+            
+            # Summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
 
@@ -1011,6 +1000,7 @@ if selected_cities:
         else:
             st.info(f"ℹ️ No prediction data available for {city}.")
 
+    
 # --- Clear selection button ---
 if st.button("Clear Selection", key="clear_selection"):
     st.session_state.selected_city = None
