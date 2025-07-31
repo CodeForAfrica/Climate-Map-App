@@ -560,7 +560,7 @@ def create_prediction_trend_chart(df_pred, selected_city):
     if not selected_city:
         return None
     
-    city_data = df_pred[df_pred['city'] == selected_city].sort_values('year')
+    city_data = df_pred[df_pred['city'] == selected_city].sort_values('date')
     
     if city_data.empty:
         return None
@@ -569,25 +569,25 @@ def create_prediction_trend_chart(df_pred, selected_city):
     
     # Add predicted temperature line
     fig.add_trace(go.Scatter(
-        x=city_data['year'],
+        x=city_data['date'],
         y=city_data['temperature'],
         mode='lines+markers',
         name='Predicted Temperature',
         line=dict(color='#FF8C00', width=3),
         marker=dict(size=6, color='#FF8C00'),
-        hovertemplate='Year: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
+        hovertemplate='Date: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
     ))
     
     # Add prediction trend line
-    z = np.polyfit(city_data['year'], city_data['temperature'], 1)
+    z = np.polyfit(city_data['date'], city_data['temperature'], 1)
     p = np.poly1d(z)
     fig.add_trace(go.Scatter(
-        x=city_data['year'],
-        y=p(city_data['year']),
+        x=city_data['date'],
+        y=p(city_data['date']),
         mode='lines',
         name='Prediction Trend',
         line=dict(color='#DC143C', width=4, dash='dash'),
-        hovertemplate='Year: %{x}<br>Trend: %{y:.1f}°C<extra></extra>'
+        hovertemplate='Date': %{x}<br>Trend: %{y:.1f}°C<extra></extra>'
     ))
     
     fig.update_layout(
@@ -595,7 +595,7 @@ def create_prediction_trend_chart(df_pred, selected_city):
         plot_bgcolor='rgba(255,255,255,0.9)',
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Year",
+        xaxis_title="Date",
         yaxis_title="Temperature (°C)",
         height=350,
         font=dict(size=12),
@@ -618,7 +618,7 @@ def create_combined_trend_chart(df, df_pred, selected_city):
         return None
     
     historical_data = df[df['city'] == selected_city].sort_values('year')
-    prediction_data = df_pred[df_pred['city'] == selected_city].sort_values('year')
+    prediction_data = df_pred[df_pred['city'] == selected_city].sort_values('date')
     
     if historical_data.empty and prediction_data.empty:
         return None
@@ -652,25 +652,25 @@ def create_combined_trend_chart(df, df_pred, selected_city):
     # Add predicted temperature line
     if not prediction_data.empty:
         fig.add_trace(go.Scatter(
-            x=prediction_data['year'],
+            x=prediction_data['date'],
             y=prediction_data['temperature'],
             mode='lines+markers',
             name='Predicted Temperature',
             line=dict(color='#FF8C00', width=3),
             marker=dict(size=4, color='#FF8C00'),
-            hovertemplate='Year: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
+            hovertemplate='Date: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
         ))
         
         # Add prediction trend line
-        z_pred = np.polyfit(prediction_data['year'], prediction_data['temperature'], 1)
+        z_pred = np.polyfit(prediction_data['date'], prediction_data['temperature'], 1)
         p_pred = np.poly1d(z_pred)
         fig.add_trace(go.Scatter(
-            x=prediction_data['year'],
-            y=p_pred(prediction_data['year']),
+            x=prediction_data['date'],
+            y=p_pred(prediction_data['date']),
             mode='lines',
             name='Prediction Trend',
             line=dict(color='#DC143C', width=3, dash='dot'),
-            hovertemplate='Year: %{x}<br>Prediction Trend: %{y:.1f}°C<extra></extra>'
+            hovertemplate='Date': %{x}<br>Prediction Trend: %{y:.1f}°C<extra></extra>'
         ))
     
     fig.update_layout(
@@ -678,7 +678,7 @@ def create_combined_trend_chart(df, df_pred, selected_city):
         plot_bgcolor='rgba(255,255,255,0.9)',
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Year",
+        xaxis_title="Date",
         yaxis_title="Temperature (°C)",
         height=400,
         font=dict(size=12),
