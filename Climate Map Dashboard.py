@@ -897,7 +897,7 @@ if st.session_state.selected_city is not None:
         
         # Prediction Analysis Section
         if not city_pred_data.empty:
-            st.markdown("### 🔮 Future Predictions (2025-2029)")
+            st.markdown("### Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
             combined_chart = create_combined_trend_chart(df, df_pred, selected_city)
@@ -919,7 +919,7 @@ if st.session_state.selected_city is not None:
             
             st.markdown(f"""
                 <div class="climate-info">
-                    <h4>🔮 Prediction Summary for {selected_city}</h4>
+                    <h4> Prediction Summary for {selected_city}</h4>
                     <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
