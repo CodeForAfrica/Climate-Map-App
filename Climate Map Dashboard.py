@@ -287,6 +287,7 @@ country_mapping = {
 
 # Load and prepare the dataset
 @st.cache_data
+@st.cache_data
 def load_data():
     # Load historical data
     df1 = pd.read_csv("sample_temp_1950-2025_1.csv")
@@ -304,7 +305,6 @@ def load_data():
     
     # Load prediction data
     df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
-    df_pred.fillna("NA", inplace=True)
     df_pred.columns = df_pred.columns.str.lower()
 
     if 'latitude' not in df_pred.columns:
@@ -465,27 +465,20 @@ def create_prediction_heatmap(df_pred, selected_city):
     if city_data.empty:
         return None
     
-    # Sort by date and extract year for x-axis
-    city_data = city_data.sort_values('date')
-    
-    # Convert date to datetime if it's not already and extract year
-    if not pd.api.types.is_datetime64_any_dtype(city_data['date']):
-        city_data['date'] = pd.to_datetime(city_data['date'])
-    
-    # Create year column for heatmap x-axis
-    city_data['year'] = city_data['date'].dt.year
+    # Sort by year
+    city_data = city_data.sort_values('year')
     
     # Create heatmap with anomaly scale (single row for the city)
     fig = go.Figure(data=go.Heatmap(
         z=[city_data['temperature_anomaly'].values],
-        x=city_data['date'].values,
+        x=city_data['year'].values,
         y=[selected_city],
         zmin=-3,
         zmax=3,
         colorscale='RdBu_r',
         showscale=False,
         hovertemplate='<b>%{y}</b><br>' +
-                      'Date: %{x}<br>' +
+                      'Year: %{x}<br>' +
                       'Predicted Anomaly: %{z:.2f}°C<br>' +
                       '<extra></extra>'
     ))
@@ -494,7 +487,7 @@ def create_prediction_heatmap(df_pred, selected_city):
         title=f"Predicted Temperature Anomalies for {selected_city} (2025-2029)",
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Date",
+        xaxis_title="Year",
         yaxis=dict(showticklabels=False, gridcolor='rgba(0,0,0,0.1)'),
         height=350,
         font=dict(size=12),
@@ -714,33 +707,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Load data and calculate anomalies
-data_result = load_data()
+df, df_pred = load_data()
+df = calculate_temperature_anomaly(df)
 
-# Check if data loading was successful
-if data_result[0] is None:
-    st.error("❌ Failed to load data. Please check your CSV files.")
-    st.stop()
+# Calculate baseline temperatures for predictions
+baseline_data = df[(df['year'] >= 1961) & (df['year'] <= 1990)]
+baseline_temps = baseline_data.groupby('city')['temperature'].mean().reset_index()
+baseline_temps.columns = ['city', 'baseline_temp']
 
-df, df_pred = data_result
-
-# Only proceed if we have historical data
-if df is not None:
-    df = calculate_temperature_anomaly(df)
-    
-    # Calculate baseline temperatures for predictions (only if we have prediction data)
-    if df_pred is not None:
-        baseline_data = df[(df['year'] >= 1961) & (df['year'] <= 1990)]
-        baseline_temps = baseline_data.groupby('city')['temperature'].mean().reset_index()
-        baseline_temps.columns = ['city', 'baseline_temp']
-        
-        # Calculate anomalies for prediction data
-        df_pred = calculate_prediction_anomaly(df_pred, baseline_temps)
-        st.success("✅ Both historical and prediction data loaded successfully!")
-    else:
-        st.warning("⚠️ Only historical data available. Prediction features will be disabled.")
-else:
-    st.error("❌ No data available. Please check your files.")
-    st.stop()
+# Calculate anomalies for prediction data
+df_pred = calculate_prediction_anomaly(df_pred, baseline_temps)
 
 # Display key statistics
 latest_year = df['year'].max()
@@ -891,7 +867,7 @@ if st.session_state.selected_city is not None:
 
     # Get city data
     city_data = df[df['city'] == selected_city]
-    city_pred_data = df_pred[df_pred['city'] == selected_city] if df_pred is not None else pd.DataFrame()
+    city_pred_data = df_pred[df_pred['city'] == selected_city]
 
     if not city_data.empty:
         country_name = city_data['country_name'].iloc[0]
@@ -903,7 +879,7 @@ if st.session_state.selected_city is not None:
         """, unsafe_allow_html=True)
 
         # Historical Analysis Section
-        st.markdown("### Historical Analysis")
+        st.markdown("### 📊 Historical Analysis")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -917,130 +893,36 @@ if st.session_state.selected_city is not None:
         narrative = generate_climate_narrative(city_data, selected_city, country_name)
         st.markdown(narrative, unsafe_allow_html=True)
         
-    # ---------------- Historical Analysis ----------------
-        st.markdown("### Historical Analysis")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            trend_chart = create_temperature_trend_chart(df, city)
-            st.plotly_chart(trend_chart, use_container_width=True)
-
-        with col2:
-            heatmap = create_climate_heatmap(df, city)
-            st.plotly_chart(heatmap, use_container_width=True)
-
-        # Optional narrative
-        narrative = generate_climate_narrative(city_data, city, country_name)
-        if narrative:
-            st.markdown(narrative, unsafe_allow_html=True)
-
-# Display analysis for cities selected from multiselect (only if cities are selected)
-if selected_cities:
-    for city in selected_cities:
-        city_data = df[df['city'] == city]
-        
-        # Handle prediction data with date parsing
-        if df_pred is not None:
-            # Parse dates in prediction data
-            df_pred_processed = df_pred.copy()
-            if 'date' in df_pred.columns:
-                df_pred_processed['date_parsed'] = pd.to_datetime(
-                    df_pred_processed['date'], 
-                    format='%b-%Y'
-                )
-                # Extract year and month for compatibility with existing functions
-                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
-                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
-            city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
-        else:
-            city_pred_data = pd.DataFrame()
-        
-        if city_data.empty:
-            continue
-
-        country_name = city_data['country_name'].iloc[0]
-
-        st.markdown(f"""
-            <div class="subtitle">
-                Detailed Climate Analysis for {city}, {country_name}
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Historical Analysis Section
-        st.markdown("### Historical Analysis")
-        col1, col2 = st.columns(2)
-
-        with col1:
-            trend_chart = create_temperature_trend_chart(df, city)
-            st.plotly_chart(trend_chart, use_container_width=True)
-
-        with col2:
-            heatmap = create_climate_heatmap(df, city)
-            st.plotly_chart(heatmap, use_container_width=True)
-
-        # Display narrative
-        narrative = generate_climate_narrative(city_data, city, country_name)
-        if narrative:
-            st.markdown(narrative, unsafe_allow_html=True)
-        
         # Prediction Analysis Section
-        if df_pred is not None and not city_pred_data.empty:
-            st.markdown("### Future Predictions (2025-2029)")
-            
-            # Parse date column if it's in mm-year format
-            if 'date' in df_pred.columns:
-                # Create a copy to avoid modifying original data
-                df_pred_processed = df_pred.copy()
-                
-                # Convert month abbreviation-year format to datetime
-                # Assuming format is like "Jul-2025", "Aug-2025", etc.
-                df_pred_processed['date_parsed'] = pd.to_datetime(
-                    df_pred_processed['date'], 
-                    format='%b-%Y'
-                )
-                # Extract year and month for compatibility with existing functions
-                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
-                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
-                
-                # Update city_pred_data with parsed dates
-                city_pred_data = df_pred_processed[df_pred_processed['city'] == selected_city].copy()
+        if not city_pred_data.empty:
+            st.markdown("### 🔮 Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
-            combined_chart = create_combined_trend_chart(df, df_pred_processed, selected_city)
+            combined_chart = create_combined_trend_chart(df, df_pred, selected_city)
             st.plotly_chart(combined_chart, use_container_width=True)
             
             col3, col4 = st.columns(2)
             
             with col3:
-                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, selected_city)
+                pred_trend_chart = create_prediction_trend_chart(df_pred, selected_city)
                 st.plotly_chart(pred_trend_chart, use_container_width=True)
 
             with col4:
-                pred_heatmap = create_prediction_heatmap(df_pred_processed, selected_city)
+                pred_heatmap = create_prediction_heatmap(df_pred, selected_city)
                 st.plotly_chart(pred_heatmap, use_container_width=True)
             
             # Prediction summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
             
-            # Get date range for summary
-            if 'date_parsed' in city_pred_data.columns:
-                min_date = city_pred_data['date_parsed'].min()
-                max_date = city_pred_data['date_parsed'].max()
-                date_range = f"({min_date.strftime('%b/%Y')} - {max_date.strftime('%b/%Y')})"
-            else:
-                date_range = "(2025-2029)"
-            
             st.markdown(f"""
                 <div class="climate-info">
-                    <h4>Prediction Summary for {selected_city}</h4>
-                    <p><strong>Average Predicted Temperature {date_range}:</strong> {avg_pred_temp:.1f}°C</p>
+                    <h4>🔮 Prediction Summary for {selected_city}</h4>
+                    <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
             """, unsafe_allow_html=True)
-        else:
-            st.info("No prediction data available for this city.")
         
         # Add button to clear selection
         if st.button("Clear Selection", key="clear_selection"):
@@ -1051,22 +933,7 @@ if selected_cities:
 if selected_cities:
     for city in selected_cities:
         city_data = df[df['city'] == city]
-        
-        # Handle prediction data with date parsing
-        if df_pred is not None:
-            # Parse dates in prediction data
-            df_pred_processed = df_pred.copy()
-            if 'date' in df_pred.columns:
-                df_pred_processed['date_parsed'] = pd.to_datetime(
-                    df_pred_processed['date'], 
-                    format='%b-%Y'
-                )
-                # Extract year and month for compatibility with existing functions
-                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
-                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
-            city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
-        else:
-            city_pred_data = pd.DataFrame()
+        city_pred_data = df_pred[df_pred['city'] == city]
         
         if city_data.empty:
             continue
@@ -1075,7 +942,7 @@ if selected_cities:
 
         st.markdown(f"""
             <div class="subtitle">
-                Detailed Climate Analysis for {city}, {country_name}
+                Forecasting Analysis for {city}, {country_name}
             </div>
         """, unsafe_allow_html=True)
 
@@ -1097,45 +964,35 @@ if selected_cities:
             st.markdown(narrative, unsafe_allow_html=True)
         
         # Prediction Analysis Section
-        if df_pred is not None and not city_pred_data.empty:
-            st.markdown("### Future Predictions")
+        if not city_pred_data.empty:
+            st.markdown("### Future Predictions (2025-2029)")
             
             # Combined historical and prediction chart
-            combined_chart = create_combined_trend_chart(df, df_pred_processed, city)
+            combined_chart = create_combined_trend_chart(df, df_pred, city)
             st.plotly_chart(combined_chart, use_container_width=True)
             
             col3, col4 = st.columns(2)
             
             with col3:
-                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, city)
+                pred_trend_chart = create_prediction_trend_chart(df_pred, city)
                 st.plotly_chart(pred_trend_chart, use_container_width=True)
 
             with col4:
-                pred_heatmap = create_prediction_heatmap(df_pred_processed, city)
+                pred_heatmap = create_prediction_heatmap(df_pred, city)
                 st.plotly_chart(pred_heatmap, use_container_width=True)
             
             # Prediction summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
             
-            # Get actual date range from data
-            if 'date_parsed' in city_pred_data.columns:
-                min_date = city_pred_data['date_parsed'].min()
-                max_date = city_pred_data['date_parsed'].max()
-                date_range = f"({min_date.strftime('%b/%Y')} - {max_date.strftime('%b/%Y')})"
-            else:
-                date_range = ""
-            
             st.markdown(f"""
                 <div class="climate-info">
                     <h4>Prediction Summary for {city}</h4>
-                    <p><strong>Average Predicted Temperature {date_range}:</strong> {avg_pred_temp:.1f}°C</p>
+                    <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
             """, unsafe_allow_html=True)
-        else:
-            st.info("ℹ️ No prediction data available for this city.")
             
 ## Show help message when no selections are made
 #if st.session_state.selected_city is None and not selected_cities:
