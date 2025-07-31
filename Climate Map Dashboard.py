@@ -917,34 +917,7 @@ if st.session_state.selected_city is not None:
         narrative = generate_climate_narrative(city_data, selected_city, country_name)
         st.markdown(narrative, unsafe_allow_html=True)
         
-        # ================= Prediction Analysis Section =================
-if df_pred is not None:
-    # Prepare prediction data only once
-    df_pred_processed = df_pred.copy()
-    
-    # Parse date if present (e.g., "Jul-2025")
-    if 'date' in df_pred.columns:
-        df_pred_processed['date_parsed'] = pd.to_datetime(
-            df_pred_processed['date'], format='%b-%Y'
-        )
-        df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
-        df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
-
-# Display analysis for selected cities
-if selected_cities:
-    for city in selected_cities:
-        city_data = df[df['city'] == city].copy()
-        if city_data.empty:
-            continue
-
-        country_name = city_data['country_name'].iloc[0]
-        st.markdown(f"""
-            <div class="subtitle">
-                Detailed Climate Analysis for {city}, {country_name}
-            </div>
-        """, unsafe_allow_html=True)
-
-        # ---------------- Historical Analysis ----------------
+    # ---------------- Historical Analysis ----------------
         st.markdown("### Historical Analysis")
         col1, col2 = st.columns(2)
 
@@ -960,6 +933,119 @@ if selected_cities:
         narrative = generate_climate_narrative(city_data, city, country_name)
         if narrative:
             st.markdown(narrative, unsafe_allow_html=True)
+
+# Display analysis for cities selected from multiselect (only if cities are selected)
+if selected_cities:
+    for city in selected_cities:
+        city_data = df[df['city'] == city]
+        
+        # Handle prediction data with date parsing
+        if df_pred is not None:
+            # Parse dates in prediction data
+            df_pred_processed = df_pred.copy()
+            if 'date' in df_pred.columns:
+                df_pred_processed['date_parsed'] = pd.to_datetime(
+                    df_pred_processed['date'], 
+                    format='%b-%Y'
+                )
+                # Extract year and month for compatibility with existing functions
+                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
+                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
+            city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
+        else:
+            city_pred_data = pd.DataFrame()
+        
+        if city_data.empty:
+            continue
+
+        country_name = city_data['country_name'].iloc[0]
+
+        st.markdown(f"""
+            <div class="subtitle">
+                Detailed Climate Analysis for {city}, {country_name}
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Historical Analysis Section
+        st.markdown("### Historical Analysis")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            trend_chart = create_temperature_trend_chart(df, city)
+            st.plotly_chart(trend_chart, use_container_width=True)
+
+        with col2:
+            heatmap = create_climate_heatmap(df, city)
+            st.plotly_chart(heatmap, use_container_width=True)
+
+        # Display narrative
+        narrative = generate_climate_narrative(city_data, city, country_name)
+        if narrative:
+            st.markdown(narrative, unsafe_allow_html=True)
+        
+        # Prediction Analysis Section
+        if df_pred is not None and not city_pred_data.empty:
+            st.markdown("### Future Predictions (2025-2029)")
+            
+            # Parse date column if it's in mm-year format
+            if 'date' in df_pred.columns:
+                # Create a copy to avoid modifying original data
+                df_pred_processed = df_pred.copy()
+                
+                # Convert month abbreviation-year format to datetime
+                # Assuming format is like "Jul-2025", "Aug-2025", etc.
+                df_pred_processed['date_parsed'] = pd.to_datetime(
+                    df_pred_processed['date'], 
+                    format='%b-%Y'
+                )
+                # Extract year and month for compatibility with existing functions
+                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
+                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
+                
+                # Update city_pred_data with parsed dates
+                city_pred_data = df_pred_processed[df_pred_processed['city'] == selected_city].copy()
+            
+            # Combined historical and prediction chart
+            combined_chart = create_combined_trend_chart(df, df_pred_processed, selected_city)
+            st.plotly_chart(combined_chart, use_container_width=True)
+            
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, selected_city)
+                st.plotly_chart(pred_trend_chart, use_container_width=True)
+
+            with col4:
+                pred_heatmap = create_prediction_heatmap(df_pred_processed, selected_city)
+                st.plotly_chart(pred_heatmap, use_container_width=True)
+            
+            # Prediction summary
+            avg_pred_temp = city_pred_data['temperature'].mean()
+            avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
+            
+            # Get date range for summary
+            if 'date_parsed' in city_pred_data.columns:
+                min_date = city_pred_data['date_parsed'].min()
+                max_date = city_pred_data['date_parsed'].max()
+                date_range = f"({min_date.strftime('%b/%Y')} - {max_date.strftime('%b/%Y')})"
+            else:
+                date_range = "(2025-2029)"
+            
+            st.markdown(f"""
+                <div class="climate-info">
+                    <h4>Prediction Summary for {selected_city}</h4>
+                    <p><strong>Average Predicted Temperature {date_range}:</strong> {avg_pred_temp:.1f}°C</p>
+                    <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
+                    <p>These predictions help inform climate adaptation and mitigation strategies.</p>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("No prediction data available for this city.")
+        
+        # Add button to clear selection
+        if st.button("Clear Selection", key="clear_selection"):
+            st.session_state.selected_city = None
+            st.rerun()
 
 # Display analysis for cities selected from multiselect (only if cities are selected)
 if selected_cities:
@@ -1050,7 +1136,6 @@ if selected_cities:
             """, unsafe_allow_html=True)
         else:
             st.info("ℹ️ No prediction data available for this city.")
-
             
 ## Show help message when no selections are made
 #if st.session_state.selected_city is None and not selected_cities:
