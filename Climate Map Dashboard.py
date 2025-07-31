@@ -926,11 +926,11 @@ if st.session_state.selected_city is not None:
                 # Create a copy to avoid modifying original data
                 df_pred_processed = df_pred.copy()
                 
-                # Convert mm-year format to datetime
-                # Assuming format is like "01-2025", "02-2025", etc.
+                # Convert month abbreviation-year format to datetime
+                # Assuming format is like "Jul-2025", "Aug-2025", etc.
                 df_pred_processed['date_parsed'] = pd.to_datetime(
                     df_pred_processed['date'], 
-                    format='%m-%Y'
+                    format='%b-%Y'
                 )
                 
                 # Update city_pred_data with parsed dates
@@ -958,7 +958,7 @@ if st.session_state.selected_city is not None:
             if 'date_parsed' in city_pred_data.columns:
                 min_date = city_pred_data['date_parsed'].min()
                 max_date = city_pred_data['date_parsed'].max()
-                date_range = f"({min_date.strftime('%m/%Y')} - {max_date.strftime('%m/%Y')})"
+                date_range = f"({min_date.strftime('%b/%Y')} - {max_date.strftime('%b/%Y')})"
             else:
                 date_range = "(2025-2029)"
             
@@ -990,7 +990,7 @@ if selected_cities:
             if 'date' in df_pred.columns:
                 df_pred_processed['date_parsed'] = pd.to_datetime(
                     df_pred_processed['date'], 
-                    format='%m-%Y'
+                    format='%b-%Y'
                 )
             city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
         else:
@@ -1050,7 +1050,7 @@ if selected_cities:
             if 'date_parsed' in city_pred_data.columns:
                 min_date = city_pred_data['date_parsed'].min()
                 max_date = city_pred_data['date_parsed'].max()
-                date_range = f"({min_date.strftime('%m/%Y')} - {max_date.strftime('%m/%Y')})"
+                date_range = f"({min_date.strftime('%b/%Y')} - {max_date.strftime('%b/%Y')})"
             else:
                 date_range = ""
             
