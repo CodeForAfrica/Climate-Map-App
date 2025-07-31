@@ -932,6 +932,9 @@ if st.session_state.selected_city is not None:
                     df_pred_processed['date'], 
                     format='%b-%Y'
                 )
+                # Extract year and month for compatibility with existing functions
+                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
+                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
                 
                 # Update city_pred_data with parsed dates
                 city_pred_data = df_pred_processed[df_pred_processed['city'] == selected_city].copy()
@@ -992,6 +995,9 @@ if selected_cities:
                     df_pred_processed['date'], 
                     format='%b-%Y'
                 )
+                # Extract year and month for compatibility with existing functions
+                df_pred_processed['year'] = df_pred_processed['date_parsed'].dt.year
+                df_pred_processed['month'] = df_pred_processed['date_parsed'].dt.month
             city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
         else:
             city_pred_data = pd.DataFrame()
