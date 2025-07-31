@@ -921,28 +921,51 @@ if st.session_state.selected_city is not None:
         if df_pred is not None and not city_pred_data.empty:
             st.markdown("### Future Predictions (2025-2029)")
             
+            # Parse date column if it's in mm-year format
+            if 'date' in df_pred.columns:
+                # Create a copy to avoid modifying original data
+                df_pred_processed = df_pred.copy()
+                
+                # Convert mm-year format to datetime
+                # Assuming format is like "01-2025", "02-2025", etc.
+                df_pred_processed['date_parsed'] = pd.to_datetime(
+                    df_pred_processed['date'], 
+                    format='%m-%Y'
+                )
+                
+                # Update city_pred_data with parsed dates
+                city_pred_data = df_pred_processed[df_pred_processed['city'] == selected_city].copy()
+            
             # Combined historical and prediction chart
-            combined_chart = create_combined_trend_chart(df, df_pred, selected_city)
+            combined_chart = create_combined_trend_chart(df, df_pred_processed, selected_city)
             st.plotly_chart(combined_chart, use_container_width=True)
             
             col3, col4 = st.columns(2)
             
             with col3:
-                pred_trend_chart = create_prediction_trend_chart(df_pred, selected_city)
+                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, selected_city)
                 st.plotly_chart(pred_trend_chart, use_container_width=True)
 
             with col4:
-                pred_heatmap = create_prediction_heatmap(df_pred, selected_city)
+                pred_heatmap = create_prediction_heatmap(df_pred_processed, selected_city)
                 st.plotly_chart(pred_heatmap, use_container_width=True)
             
             # Prediction summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
             
+            # Get date range for summary
+            if 'date_parsed' in city_pred_data.columns:
+                min_date = city_pred_data['date_parsed'].min()
+                max_date = city_pred_data['date_parsed'].max()
+                date_range = f"({min_date.strftime('%m/%Y')} - {max_date.strftime('%m/%Y')})"
+            else:
+                date_range = "(2025-2029)"
+            
             st.markdown(f"""
                 <div class="climate-info">
                     <h4>Prediction Summary for {selected_city}</h4>
-                    <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
+                    <p><strong>Average Predicted Temperature {date_range}:</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
@@ -959,7 +982,19 @@ if st.session_state.selected_city is not None:
 if selected_cities:
     for city in selected_cities:
         city_data = df[df['city'] == city]
-        city_pred_data = df_pred[df_pred['city'] == city] if df_pred is not None else pd.DataFrame()
+        
+        # Handle prediction data with date parsing
+        if df_pred is not None:
+            # Parse dates in prediction data
+            df_pred_processed = df_pred.copy()
+            if 'date' in df_pred.columns:
+                df_pred_processed['date_parsed'] = pd.to_datetime(
+                    df_pred_processed['date'], 
+                    format='%m-%Y'
+                )
+            city_pred_data = df_pred_processed[df_pred_processed['city'] == city]
+        else:
+            city_pred_data = pd.DataFrame()
         
         if city_data.empty:
             continue
@@ -991,30 +1026,38 @@ if selected_cities:
         
         # Prediction Analysis Section
         if df_pred is not None and not city_pred_data.empty:
-            st.markdown("### Future Predictions (2025-2029)")
+            st.markdown("### Future Predictions")
             
             # Combined historical and prediction chart
-            combined_chart = create_combined_trend_chart(df, df_pred, city)
+            combined_chart = create_combined_trend_chart(df, df_pred_processed, city)
             st.plotly_chart(combined_chart, use_container_width=True)
             
             col3, col4 = st.columns(2)
             
             with col3:
-                pred_trend_chart = create_prediction_trend_chart(df_pred, city)
+                pred_trend_chart = create_prediction_trend_chart(df_pred_processed, city)
                 st.plotly_chart(pred_trend_chart, use_container_width=True)
 
             with col4:
-                pred_heatmap = create_prediction_heatmap(df_pred, city)
+                pred_heatmap = create_prediction_heatmap(df_pred_processed, city)
                 st.plotly_chart(pred_heatmap, use_container_width=True)
             
             # Prediction summary
             avg_pred_temp = city_pred_data['temperature'].mean()
             avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
             
+            # Get actual date range from data
+            if 'date_parsed' in city_pred_data.columns:
+                min_date = city_pred_data['date_parsed'].min()
+                max_date = city_pred_data['date_parsed'].max()
+                date_range = f"({min_date.strftime('%m/%Y')} - {max_date.strftime('%m/%Y')})"
+            else:
+                date_range = ""
+            
             st.markdown(f"""
                 <div class="climate-info">
                     <h4>Prediction Summary for {city}</h4>
-                    <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
+                    <p><strong>Average Predicted Temperature {date_range}:</strong> {avg_pred_temp:.1f}°C</p>
                     <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                     <p>These predictions help inform climate adaptation and mitigation strategies.</p>
                 </div>
