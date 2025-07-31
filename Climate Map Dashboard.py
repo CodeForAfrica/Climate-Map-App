@@ -288,100 +288,33 @@ country_mapping = {
 # Load and prepare the dataset
 @st.cache_data
 def load_data():
-    try:
-        # Load historical data with error handling
-        st.write("Loading historical data...")
-        
-        # Check if files exist and load them
-        try:
-            df1 = pd.read_csv("sample_temp_1950-2025_1.csv")
-            st.write(f"✅ Loaded sample_temp_1950-2025_1.csv: {df1.shape[0]} rows, {df1.shape[1]} columns")
-            st.write(f"Columns: {list(df1.columns)}")
-        except Exception as e:
-            st.error(f"❌ Error loading sample_temp_1950-2025_1.csv: {e}")
-            return None, None
-        
-        try:
-            df2 = pd.read_csv("sample_temp_1950-2025_2.csv")
-            st.write(f"✅ Loaded sample_temp_1950-2025_2.csv: {df2.shape[0]} rows, {df2.shape[1]} columns")
-            st.write(f"Columns: {list(df2.columns)}")
-        except Exception as e:
-            st.error(f"❌ Error loading sample_temp_1950-2025_2.csv: {e}")
-            return None, None
-        
-        # Combine historical data
-        df = pd.concat([df1, df2], axis=0).reset_index(drop=True)
-        df.fillna("NA", inplace=True)
-        df.columns = df.columns.str.lower()
-        
-        st.write(f"✅ Combined historical data: {df.shape[0]} rows, {df.shape[1]} columns")
-        st.write(f"Combined columns: {list(df.columns)}")
+    # Load historical data
+    df1 = pd.read_csv("sample_temp_1950-2025_1.csv")
+    df2 = pd.read_csv("sample_temp_1950-2025_2.csv")
+    df = pd.concat([df1, df2], axis=0).reset_index(drop=True)
+    df.fillna("NA", inplace=True)
+    df.columns = df.columns.str.lower()
 
-        # Handle coordinate columns
-        if 'latitude' not in df.columns:
-            if 'lat' in df.columns:
-                df['latitude'] = df['lat']
-            else:
-                st.error("❌ No latitude or lat column found in historical data!")
-                return None, None
-                
-        if 'lng' not in df.columns and 'longitude' in df.columns:
-            df['lng'] = df['longitude']
-        elif 'lng' not in df.columns and 'lon' in df.columns:
-            df['lng'] = df['lon']
-        elif 'lng' not in df.columns:
-            st.error("❌ No longitude/lng/lon column found in historical data!")
-            return None, None
+    if 'latitude' not in df.columns:
+        df['latitude'] = df['lat']
+    if 'lng' not in df.columns and 'longitude' in df.columns:
+        df['lng'] = df['longitude']
 
-        # Handle country mapping (only if country_mapping is defined)
-        try:
-            df['country_name'] = df['country'].map(country_mapping)
-        except NameError:
-            st.warning("⚠️ country_mapping not defined, using country column as-is")
-            df['country_name'] = df['country'] if 'country' in df.columns else 'Unknown'
-        
-        # Load prediction data
-        st.write("Loading prediction data...")
-        try:
-            df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
-            st.write(f"✅ Loaded monthly_pred_temp_2025-2029.csv: {df_pred.shape[0]} rows, {df_pred.shape[1]} columns")
-            st.write(f"Prediction columns: {list(df_pred.columns)}")
-            
-            df_pred.columns = df_pred.columns.str.lower()
-
-            # Handle coordinate columns for predictions
-            if 'latitude' not in df_pred.columns:
-                if 'lat' in df_pred.columns:
-                    df_pred['latitude'] = df_pred['lat']
-                else:
-                    st.error("❌ No latitude or lat column found in prediction data!")
-                    return df, None
-                    
-            if 'lng' not in df_pred.columns and 'longitude' in df_pred.columns:
-                df_pred['lng'] = df_pred['longitude']
-            elif 'lng' not in df_pred.columns and 'lon' in df_pred.columns:
-                df_pred['lng'] = df_pred['lon']
-            elif 'lng' not in df_pred.columns:
-                st.error("❌ No longitude/lng/lon column found in prediction data!")
-                return df, None
-
-            # Handle country mapping for predictions
-            try:
-                df_pred['country_name'] = df_pred['country'].map(country_mapping)
-            except NameError:
-                st.warning("⚠️ country_mapping not defined for predictions, using country column as-is")
-                df_pred['country_name'] = df_pred['country'] if 'country' in df_pred.columns else 'Unknown'
-            
-            return df, df_pred
-            
-        except Exception as e:
-            st.error(f"❌ Error loading prediction data: {e}")
-            st.write("Continuing with historical data only...")
-            return df, None
+    df['country_name'] = df['country'].map(country_mapping)
     
-    except Exception as e:
-        st.error(f"❌ Critical error in load_data(): {e}")
-        return None, None
+    # Load prediction data
+    df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
+    df_pred.fillna("NA", inplace=True)
+    df_pred.columns = df_pred.columns.str.lower()
+
+    if 'latitude' not in df_pred.columns:
+        df_pred['latitude'] = df_pred['lat']
+    if 'lng' not in df_pred.columns and 'longitude' in df_pred.columns:
+        df_pred['lng'] = df_pred['longitude']
+
+    df_pred['country_name'] = df_pred['country'].map(country_mapping)
+    
+    return df, df_pred
 
 def calculate_temperature_anomaly(df, baseline_start=1961, baseline_end=1990):
     """Calculate temperature anomaly based on baseline period (1961-1990)"""
