@@ -911,9 +911,6 @@ st.markdown("""
 
 st.info("""
 **ℹ️ Monthly Anomaly Note**  
-Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline.  
-As these are model-based projections, the anomalies may not be as precise as those derived from observed data.  
-
 Monthly anomalies are calculated relative to the historical **annual** baseline due to lack of monthly historical data.  
 These anomalies indicate **overall warming trends** but may not capture **seasonal variations** precisely.
 """)
