@@ -900,14 +900,19 @@ if selected_cities:
 st.markdown("---")
 st.markdown("""
     <div class="climate-info">
-        <h4> About This Analysis</h4>
+        <h4> About this analysis</h4>
         <p><strong>Historical Data:</strong> Temperature records from 1950-2025 showing long-term climate trends</p>
         <p><strong>Prediction Data:</strong> Monthly forecasts from 2025-2029 using advanced climate modeling</p>
         <p><strong>Temperature Anomalies:</strong> Calculated relative to 1961-1990 baseline period (WMO standard)</p>
         <p><strong>Color Scale:</strong> Blue indicates cooler than average, red indicates warmer than average</p>
         <p>This tool supports <strong>SDG 13: Climate Action</strong> by providing accessible climate data for decision-making.</p>
-        <p>Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline. As these are model-based projections, the anomalies may not be as precise as those derived from observed data.</p>
     </div>
+    st.info("""
+    **ℹ️ Monthly Anomaly Note**
+    Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline. As these are model-based projections, the anomalies may not be as precise as those derived from observed data.
+    Monthly anomalies are calculated relative to the historical **annual** baseline due to lack of monthly historical data.  
+    These anomalies indicate **overall warming trends** but may not capture **seasonal variations** precisely.
+    """)
 """, unsafe_allow_html=True)
 
 # SDG Information Section
