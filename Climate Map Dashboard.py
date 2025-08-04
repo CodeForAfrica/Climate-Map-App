@@ -930,7 +930,8 @@ st.markdown("""
             Monthly anomalies are calculated relative to the historical <strong>annual</strong> baseline due to lack of monthly historical data. 
             These anomalies indicate <strong>overall warming trends</strong> but may not capture <strong>seasonal variations</strong> precisely.
         </div>
-    </div>
+        
+    </div>,
 """, unsafe_allow_html=True)
 
 # SDG Information Section
