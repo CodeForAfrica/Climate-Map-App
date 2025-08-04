@@ -554,7 +554,7 @@ def create_yearly_monthly_heatmap(df_pred, selected_city, selected_year):
     ))
     
     fig.update_layout(
-        title=f"Monthly Temperature Anomalies - {selected_city} ({selected_year})",
+        title=f"Monthly Temperature Anomalies for {selected_city} - {selected_year}",
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
         xaxis_title="Month",
@@ -829,7 +829,7 @@ def display_city_analysis(city, df, df_pred):
     
     # Prediction Analysis Section
     if not city_pred_data.empty:
-        st.markdown("### 🔮 Future Predictions (2025-2029)")
+        st.markdown("### Future Predictions (2025-2029)")
         
         # Year selection dropdown
         available_years = sorted(city_pred_data['year'].unique())
@@ -871,7 +871,7 @@ def display_city_analysis(city, df, df_pred):
                 
                 st.markdown(f"""
                     <div class="climate-info">
-                        <h4>📈 {selected_year} Summary for {city}</h4>
+                        <h4> {selected_year} Summary for {city}</h4>
                         <p><strong>Average Temperature:</strong> {avg_temp:.1f}°C</p>
                         <p><strong>Average Anomaly:</strong> {avg_anomaly:+.1f}°C above 1961-1990 baseline</p>
                         <p><strong>Hottest Month:</strong> {hottest_month} ({hottest_temp:.1f}°C)</p>
@@ -899,12 +899,13 @@ if selected_cities:
 st.markdown("---")
 st.markdown("""
     <div class="climate-info">
-        <h4>📋 About This Analysis</h4>
+        <h4> About This Analysis</h4>
         <p><strong>Historical Data:</strong> Temperature records from 1950-2025 showing long-term climate trends</p>
         <p><strong>Prediction Data:</strong> Monthly forecasts from 2025-2029 using advanced climate modeling</p>
         <p><strong>Temperature Anomalies:</strong> Calculated relative to 1961-1990 baseline period (WMO standard)</p>
         <p><strong>Color Scale:</strong> Blue indicates cooler than average, red indicates warmer than average</p>
         <p>This tool supports <strong>SDG 13: Climate Action</strong> by providing accessible climate data for decision-making.</p>
+        <p>Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline. As these are model-based projections, the anomalies may not be as precise as those derived from observed data.</p>
     </div>
 """, unsafe_allow_html=True)
 
