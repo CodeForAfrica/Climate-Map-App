@@ -288,6 +288,7 @@ country_mapping = {
 }
 
 # Load and prepare the dataset
+# Load and prepare the dataset
 @st.cache_data
 def load_data():
     # Load historical data
@@ -461,150 +462,51 @@ def create_climate_heatmap(df, selected_city):
     
     return fig
 
-def create_monthly_prediction_heatmap_2025(df_pred, selected_city):
-    """Create a monthly heatmap for remaining 2025 predictions"""
-    if not selected_city:
+def create_yearly_monthly_trend_chart(df_pred, selected_city, selected_year):
+    """Create a line chart showing monthly predicted temperature trends for a specific year"""
+    if not selected_city or not selected_year:
         return None
     
-    # Filter data for selected city and 2025
-    city_data = df_pred[(df_pred['city'] == selected_city) & (df_pred['year'] == 2025)]
+    city_data = df_pred[(df_pred['city'] == selected_city) & (df_pred['year'] == selected_year)].copy()
     
     if city_data.empty:
         return None
     
-    # Sort by date
-    city_data = city_data.sort_values('date_parsed')
-    
-    # Create heatmap with months on y-axis and single year column
-    fig = go.Figure(data=go.Heatmap(
-        z=city_data['temperature_anomaly'].values.reshape(-1, 1),
-        x=[2025],
-        y=city_data['month_name'].values,
-        zmin=-3,
-        zmax=3,
-        colorscale='RdBu_r',
-        showscale=True,
-        colorbar=dict(title="Anomaly (°C)"),
-        hovertemplate='<b>%{y} 2025</b><br>' +
-                      'Predicted Anomaly: %{z:.2f}°C<br>' +
-                      '<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title=f"2025 Monthly Temperature Anomalies - {selected_city}",
-        paper_bgcolor='rgba(255,255,255,0.95)',
-        margin=dict(l=80, r=40, t=60, b=40),
-        xaxis_title="Year",
-        yaxis_title="Month",
-        height=400,
-        font=dict(size=12),
-        title_font=dict(size=16, color='#2c3e50'),
-        xaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        autosize=True
-    )
-    
-    return fig
-
-def create_monthly_prediction_heatmap_2026_onwards(df_pred, selected_city):
-    """Create a monthly heatmap for 2026-2029 predictions"""
-    if not selected_city:
-        return None
-    
-    # Filter data for selected city and 2026 onwards
-    city_data = df_pred[(df_pred['city'] == selected_city) & (df_pred['year'] >= 2026)]
-    
-    if city_data.empty:
-        return None
-    
-    # Sort by date
-    city_data = city_data.sort_values('date_parsed')
-    
-    # Create pivot table for heatmap (months as rows, years as columns)
-    heatmap_data = city_data.pivot_table(
-        values='temperature_anomaly', 
-        index='month_name', 
-        columns='year', 
-        aggfunc='mean'
-    )
-    
-    # Reorder months properly
-    month_order = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    heatmap_data = heatmap_data.reindex(month_order)
-    
-    fig = go.Figure(data=go.Heatmap(
-        z=heatmap_data.values,
-        x=heatmap_data.columns,
-        y=heatmap_data.index,
-        zmin=-3,
-        zmax=3,
-        colorscale='RdBu_r',
-        showscale=True,
-        colorbar=dict(title="Anomaly (°C)"),
-        hovertemplate='<b>%{y} %{x}</b><br>' +
-                      'Predicted Anomaly: %{z:.2f}°C<br>' +
-                      '<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title=f"2026-2029 Monthly Temperature Anomalies - {selected_city}",
-        paper_bgcolor='rgba(255,255,255,0.95)',
-        margin=dict(l=80, r=40, t=60, b=40),
-        xaxis_title="Year",
-        yaxis_title="Month",
-        height=400,
-        font=dict(size=12),
-        title_font=dict(size=16, color='#2c3e50'),
-        xaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        autosize=True
-    )
-    
-    return fig
-
-def create_monthly_prediction_trend_chart(df_pred, selected_city):
-    """Create a line chart showing monthly predicted temperature trends"""
-    if not selected_city:
-        return None
-    
-    city_data = df_pred[df_pred['city'] == selected_city].sort_values('date_parsed')
-    
-    if city_data.empty:
-        return None
+    # Sort by month to ensure proper order
+    city_data = city_data.sort_values('month')
     
     fig = go.Figure()
     
     # Add predicted temperature line
     fig.add_trace(go.Scatter(
-        x=city_data['date_parsed'],
+        x=city_data['month_name'],
         y=city_data['temperature'],
         mode='lines+markers',
-        name='Predicted Temperature',
+        name=f'Predicted Temperature {selected_year}',
         line=dict(color='#FF8C00', width=3),
-        marker=dict(size=4, color='#FF8C00'),
-        hovertemplate='Date: %{x|%b %Y}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
+        marker=dict(size=8, color='#FF8C00'),
+        hovertemplate='Month: %{x}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>'
     ))
     
-    # Add overall trend line
+    # Add trend line across months
     x_numeric = np.arange(len(city_data))
     z = np.polyfit(x_numeric, city_data['temperature'], 1)
     p = np.poly1d(z)
     fig.add_trace(go.Scatter(
-        x=city_data['date_parsed'],
+        x=city_data['month_name'],
         y=p(x_numeric),
         mode='lines',
-        name='Overall Trend',
-        line=dict(color='#DC143C', width=4, dash='dash'),
-        hovertemplate='Date: %{x|%b %Y}<br>Trend: %{y:.1f}°C<extra></extra>'
+        name=f'Monthly Trend {selected_year}',
+        line=dict(color='#DC143C', width=3, dash='dash'),
+        hovertemplate='Month: %{x}<br>Trend: %{y:.1f}°C<extra></extra>'
     ))
     
     fig.update_layout(
-        title=f"Monthly Predicted Temperature Trend for {selected_city} (2025-2029)",
+        title=f"Monthly Temperature Predictions for {selected_city} - {selected_year}",
         plot_bgcolor='rgba(255,255,255,0.9)',
         paper_bgcolor='rgba(255,255,255,0.95)',
         margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Date",
+        xaxis_title="Month",
         yaxis_title="Temperature (°C)",
         height=400,
         font=dict(size=12),
@@ -616,6 +518,51 @@ def create_monthly_prediction_trend_chart(df_pred, selected_city):
             bordercolor='rgba(0,0,0,0.2)',
             borderwidth=1
         ),
+        autosize=True
+    )
+    
+    return fig
+
+def create_yearly_monthly_heatmap(df_pred, selected_city, selected_year):
+    """Create a monthly heatmap for a specific year showing temperature anomalies"""
+    if not selected_city or not selected_year:
+        return None
+    
+    # Filter data for selected city and year
+    city_data = df_pred[(df_pred['city'] == selected_city) & (df_pred['year'] == selected_year)]
+    
+    if city_data.empty:
+        return None
+    
+    # Sort by month
+    city_data = city_data.sort_values('month')
+    
+    # Create heatmap with months on x-axis and single row
+    fig = go.Figure(data=go.Heatmap(
+        z=[city_data['temperature_anomaly'].values],
+        x=city_data['month_name'].values,
+        y=[selected_city],
+        zmin=-3,
+        zmax=3,
+        colorscale='RdBu_r',
+        showscale=True,
+        colorbar=dict(title="Anomaly (°C)"),
+        hovertemplate='<b>%{y}</b><br>' +
+                      'Month: %{x}<br>' +
+                      'Predicted Anomaly: %{z:.2f}°C<br>' +
+                      '<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title=f"Monthly Temperature Anomalies - {selected_city} ({selected_year})",
+        paper_bgcolor='rgba(255,255,255,0.95)',
+        margin=dict(l=40, r=40, t=60, b=40),
+        xaxis_title="Month",
+        yaxis=dict(showticklabels=False, gridcolor='rgba(0,0,0,0.1)'),
+        height=400,
+        font=dict(size=12),
+        title_font=dict(size=16, color='#2c3e50'),
+        xaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
         autosize=True
     )
     
@@ -664,94 +611,6 @@ def create_temperature_trend_chart(df, selected_city):
         xaxis_title="Year",
         yaxis_title="Temperature (°C)",
         height=350,
-        font=dict(size=12),
-        title_font=dict(size=16, color='#2c3e50'),
-        xaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        yaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
-        legend=dict(
-            bgcolor='rgba(255,255,255,0.8)',
-            bordercolor='rgba(0,0,0,0.2)',
-            borderwidth=1
-        ),
-        autosize=True
-    )
-    
-    return fig
-
-def create_combined_trend_chart(df, df_pred, selected_city):
-    """Create a combined chart showing both historical and predicted temperature trends"""
-    if not selected_city:
-        return None
-    
-    historical_data = df[df['city'] == selected_city].sort_values('year')
-    prediction_data = df_pred[df_pred['city'] == selected_city].sort_values('date_parsed')
-    
-    if historical_data.empty and prediction_data.empty:
-        return None
-    
-    fig = go.Figure()
-    
-    # Add historical temperature line
-    if not historical_data.empty:
-        fig.add_trace(go.Scatter(
-            x=historical_data['year'],
-            y=historical_data['temperature'],
-            mode='lines+markers',
-            name='Historical Temperature',
-            line=dict(color='#4B9CD3', width=3),
-            marker=dict(size=4, color='#4B9CD3'),
-            hovertemplate='Year: %{x}<br>Temperature: %{y:.1f}°C<extra></extra>'
-        ))
-        
-        # Add historical trend line
-        z_hist = np.polyfit(historical_data['year'], historical_data['temperature'], 1)
-        p_hist = np.poly1d(z_hist)
-        fig.add_trace(go.Scatter(
-            x=historical_data['year'],
-            y=p_hist(historical_data['year']),
-            mode='lines',
-            name='Historical Trend',
-            line=dict(color='#FF0000', width=3, dash='dash'),
-            hovertemplate='Year: %{x}<br>Historical Trend: %{y:.1f}°C<extra></extra>'
-        ))
-    
-    # Add predicted temperature line (monthly data)
-    if not prediction_data.empty:
-        # Convert date_parsed to year with decimal for smooth plotting
-        prediction_data['year_decimal'] = prediction_data['year'] + (prediction_data['month'] - 1) / 12
-        
-        fig.add_trace(go.Scatter(
-            x=prediction_data['year_decimal'],
-            y=prediction_data['temperature'],
-            mode='lines+markers',
-            name='Predicted Temperature (Monthly)',
-            line=dict(color='#FF8C00', width=3),
-            marker=dict(size=3, color='#FF8C00'),
-            hovertemplate='Date: %{customdata}<br>Predicted Temperature: %{y:.1f}°C<extra></extra>',
-            customdata=prediction_data['date'].values
-        ))
-        
-        # Add prediction trend line
-        x_numeric = np.arange(len(prediction_data))
-        z_pred = np.polyfit(prediction_data['year_decimal'], prediction_data['temperature'], 1)
-        p_pred = np.poly1d(z_pred)
-        fig.add_trace(go.Scatter(
-            x=prediction_data['year_decimal'],
-            y=p_pred(prediction_data['year_decimal']),
-            mode='lines',
-            name='Prediction Trend',
-            line=dict(color='#DC143C', width=3, dash='dot'),
-            hovertemplate='Year: %{x:.1f}<br>Prediction Trend: %{y:.1f}°C<extra></extra>'
-        ))
-    
-    fig.update_layout(
-        title=f"Historical & Predicted Temperature Trends for {selected_city}",
-        plot_bgcolor='rgba(255,255,255,0.9)',
-        paper_bgcolor='rgba(255,255,255,0.95)',
-        margin=dict(l=40, r=40, t=60, b=40),
-        xaxis_title="Year",
-        yaxis_title="Temperature (°C)",
-        height=400,
         font=dict(size=12),
         title_font=dict(size=16, color='#2c3e50'),
         xaxis=dict(gridcolor='rgba(0,0,0,0.1)'),
@@ -950,7 +809,7 @@ def display_city_analysis(city, df, df_pred):
     """, unsafe_allow_html=True)
 
     # Historical Analysis Section
-    st.markdown("### Historical Analysis (1950-2025)")
+    st.markdown("### 📊 Historical Analysis (1950-2025)")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -970,54 +829,56 @@ def display_city_analysis(city, df, df_pred):
     
     # Prediction Analysis Section
     if not city_pred_data.empty:
-        st.markdown("### Future Predictions (2025-2029)")
+        st.markdown("### 🔮 Future Predictions (2025-2029)")
         
-        # Combined historical and prediction chart
-        combined_chart = create_combined_trend_chart(df, df_pred, city)
-        if combined_chart:
-            st.plotly_chart(combined_chart, use_container_width=True)
+        # Year selection dropdown
+        available_years = sorted(city_pred_data['year'].unique())
         
-        # Monthly prediction trend
-        monthly_trend_chart = create_monthly_prediction_trend_chart(df_pred, city)
-        if monthly_trend_chart:
-            st.plotly_chart(monthly_trend_chart, use_container_width=True)
+        col_year, col_space = st.columns([1, 3])
+        with col_year:
+            selected_year = st.selectbox(
+                f"Select year for {city}:",
+                available_years,
+                index=0,
+                key=f"year_selector_{city}"
+            )
         
-        # Monthly heatmaps section
-        #st.markdown("#### Monthly Temperature Anomaly Patterns")
-        
-        col3, col4 = st.columns(2)
-        
-        with col3:
-            # 2025 monthly heatmap
-            heatmap_2025 = create_monthly_prediction_heatmap_2025(df_pred, city)
-            if heatmap_2025:
-                st.plotly_chart(heatmap_2025, use_container_width=True)
-        
-        with col4:
-            # 2026-2029 monthly heatmap
-            heatmap_2026_onwards = create_monthly_prediction_heatmap_2026_onwards(df_pred, city)
-            if heatmap_2026_onwards:
-                st.plotly_chart(heatmap_2026_onwards, use_container_width=True)
-        
-        # Prediction summary
-        avg_pred_temp = city_pred_data['temperature'].mean()
-        avg_pred_anomaly = city_pred_data['temperature_anomaly'].mean()
-        
-        # Calculate seasonal patterns
-        seasonal_avg = city_pred_data.groupby('month_name')['temperature'].mean()
-        hottest_month = seasonal_avg.idxmax()
-        coolest_month = seasonal_avg.idxmin()
-        
-        st.markdown(f"""
-            <div class="climate-info">
-                <h4> Prediction Summary for {city}</h4>
-                <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
-                <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
-                <p><strong>Seasonal Pattern:</strong> Hottest month predicted to be {hottest_month} ({seasonal_avg[hottest_month]:.1f}°C), 
-                   coolest month {coolest_month} ({seasonal_avg[coolest_month]:.1f}°C)</p>
-                <p>These monthly predictions help inform climate adaptation and mitigation strategies with seasonal precision.</p>
-            </div>
-        """, unsafe_allow_html=True)
+        if selected_year:
+            # Display monthly analysis for selected year
+            col3, col4 = st.columns(2)
+            
+            with col3:
+                # Monthly trend chart
+                monthly_trend_chart = create_yearly_monthly_trend_chart(df_pred, city, selected_year)
+                if monthly_trend_chart:
+                    st.plotly_chart(monthly_trend_chart, use_container_width=True)
+            
+            with col4:
+                # Monthly heatmap
+                monthly_heatmap = create_yearly_monthly_heatmap(df_pred, city, selected_year)
+                if monthly_heatmap:
+                    st.plotly_chart(monthly_heatmap, use_container_width=True)
+            
+            # Year summary statistics
+            year_data = city_pred_data[city_pred_data['year'] == selected_year]
+            if not year_data.empty:
+                avg_temp = year_data['temperature'].mean()
+                avg_anomaly = year_data['temperature_anomaly'].mean()
+                hottest_month = year_data.loc[year_data['temperature'].idxmax(), 'month_name']
+                hottest_temp = year_data['temperature'].max()
+                coolest_month = year_data.loc[year_data['temperature'].idxmin(), 'month_name']
+                coolest_temp = year_data['temperature'].min()
+                
+                st.markdown(f"""
+                    <div class="climate-info">
+                        <h4>📈 {selected_year} Summary for {city}</h4>
+                        <p><strong>Average Temperature:</strong> {avg_temp:.1f}°C</p>
+                        <p><strong>Average Anomaly:</strong> {avg_anomaly:+.1f}°C above 1961-1990 baseline</p>
+                        <p><strong>Hottest Month:</strong> {hottest_month} ({hottest_temp:.1f}°C)</p>
+                        <p><strong>Coolest Month:</strong> {coolest_month} ({coolest_temp:.1f}°C)</p>
+                        <p><strong>Temperature Range:</strong> {hottest_temp - coolest_temp:.1f}°C</p>
+                    </div>
+                """, unsafe_allow_html=True)
 
 # Display analysis for selected city from map click (only if actually clicked)
 if st.session_state.selected_city is not None:
@@ -1038,7 +899,7 @@ if selected_cities:
 st.markdown("---")
 st.markdown("""
     <div class="climate-info">
-        <h4> About This Analysis</h4>
+        <h4>📋 About This Analysis</h4>
         <p><strong>Historical Data:</strong> Temperature records from 1950-2025 showing long-term climate trends</p>
         <p><strong>Prediction Data:</strong> Monthly forecasts from 2025-2029 using advanced climate modeling</p>
         <p><strong>Temperature Anomalies:</strong> Calculated relative to 1961-1990 baseline period (WMO standard)</p>
