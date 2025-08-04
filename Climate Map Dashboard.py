@@ -950,7 +950,7 @@ def display_city_analysis(city, df, df_pred):
     """, unsafe_allow_html=True)
 
     # Historical Analysis Section
-    st.markdown("### 📊 Historical Analysis (1950-2025)")
+    st.markdown("### Historical Analysis (1950-2025)")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -970,7 +970,7 @@ def display_city_analysis(city, df, df_pred):
     
     # Prediction Analysis Section
     if not city_pred_data.empty:
-        st.markdown("### 🔮 Future Predictions (2025-2029)")
+        st.markdown("### Future Predictions (2025-2029)")
         
         # Combined historical and prediction chart
         combined_chart = create_combined_trend_chart(df, df_pred, city)
@@ -1038,7 +1038,7 @@ if selected_cities:
 st.markdown("---")
 st.markdown("""
     <div class="climate-info">
-        <h4>📋 About This Analysis</h4>
+        <h4> About This Analysis</h4>
         <p><strong>Historical Data:</strong> Temperature records from 1950-2025 showing long-term climate trends</p>
         <p><strong>Prediction Data:</strong> Monthly forecasts from 2025-2029 using advanced climate modeling</p>
         <p><strong>Temperature Anomalies:</strong> Calculated relative to 1961-1990 baseline period (WMO standard)</p>
