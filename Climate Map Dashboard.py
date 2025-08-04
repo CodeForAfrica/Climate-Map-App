@@ -810,7 +810,7 @@ def display_city_analysis(city, df, df_pred):
     """, unsafe_allow_html=True)
 
     # Historical Analysis Section
-    st.markdown("### 📊 Historical Analysis (1950-2025)")
+    st.markdown("### Historical Analysis (1950-2025)")
     col1, col2 = st.columns(2)
 
     with col1:
