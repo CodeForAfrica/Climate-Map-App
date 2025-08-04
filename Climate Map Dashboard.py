@@ -102,7 +102,7 @@ st.markdown("""
             background: transparent;
             padding: 15px;
             border-radius: 8px;
-            color: white;
+            color: black;
             margin: 15px 0;
             box-shadow: 0 4px 15px rgba(78,205,196,0.3);
         }
