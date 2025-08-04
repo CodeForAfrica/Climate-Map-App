@@ -899,6 +899,22 @@ if selected_cities:
 # Footer information
 st.markdown("---")
 st.markdown("""
+    <style>
+        .climate-info {
+            background-color: #f0f2f6;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .info-box {
+            background-color: #e6f3ff;
+            border-left: 6px solid #1f77b4;
+            padding: 12px 16px;
+            margin-top: 12px;
+            border-radius: 5px;
+            color: #000;
+        }
+    </style>
+
     <div class="climate-info">
         <h4> About this analysis</h4>
         <p><strong>Historical Data:</strong> Temperature records from 1950-2025 showing long-term climate trends</p>
@@ -906,17 +922,16 @@ st.markdown("""
         <p><strong>Temperature Anomalies:</strong> Calculated relative to 1961-1990 baseline period (WMO standard)</p>
         <p><strong>Color Scale:</strong> Blue indicates cooler than average, red indicates warmer than average</p>
         <p>This tool supports <strong>SDG 13: Climate Action</strong> by providing accessible climate data for decision-making.</p>
+
+        <div class="info-box">
+            <strong>ℹ️ Monthly Anomaly Note</strong><br>
+            Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline. 
+            As these are model-based projections, the anomalies may not be as precise as those derived from observed data.<br><br>
+            Monthly anomalies are calculated relative to the historical <strong>annual</strong> baseline due to lack of monthly historical data. 
+            These anomalies indicate <strong>overall warming trends</strong> but may not capture <strong>seasonal variations</strong> precisely.
+        </div>
     </div>
 """, unsafe_allow_html=True)
-
-st.info("""
-**ℹ️ Monthly Anomaly Note**  
-Temperature anomalies for the future projections are calculated using predicted temperature values relative to the historical baseline.  
-As these are model-based projections, the anomalies may not be as precise as those derived from observed data.  
-
-Monthly anomalies are calculated relative to the historical **annual** baseline due to lack of monthly historical data.  
-These anomalies indicate **overall warming trends** but may not capture **seasonal variations** precisely.
-""")
 
 # SDG Information Section
 with st.container():
