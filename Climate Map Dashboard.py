@@ -983,7 +983,7 @@ def display_city_analysis(city, df, df_pred):
             st.plotly_chart(monthly_trend_chart, use_container_width=True)
         
         # Monthly heatmaps section
-        st.markdown("#### Monthly Temperature Anomaly Patterns")
+        #st.markdown("#### Monthly Temperature Anomaly Patterns")
         
         col3, col4 = st.columns(2)
         
