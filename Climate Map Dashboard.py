@@ -1010,7 +1010,7 @@ def display_city_analysis(city, df, df_pred):
         
         st.markdown(f"""
             <div class="climate-info">
-                <h4>🔍 Prediction Summary for {city}</h4>
+                <h4> Prediction Summary for {city}</h4>
                 <p><strong>Average Predicted Temperature (2025-2029):</strong> {avg_pred_temp:.1f}°C</p>
                 <p><strong>Average Predicted Anomaly:</strong> {avg_pred_anomaly:+.1f}°C above 1961-1990 baseline</p>
                 <p><strong>Seasonal Pattern:</strong> Hottest month predicted to be {hottest_month} ({seasonal_avg[hottest_month]:.1f}°C), 
