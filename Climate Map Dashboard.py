@@ -306,7 +306,7 @@ def load_data():
     df['country_name'] = df['country'].map(country_mapping)
     
     # Load prediction data
-    df_pred = pd.read_csv("data/monthly_pred_temp_2025-2029.csv")
+    df_pred = pd.read_csv("monthly_pred_temp_2025-2029.csv")
     df_pred.columns = df_pred.columns.str.lower()
 
     # Parse the date column (mm-year format like "Jul-2025")
