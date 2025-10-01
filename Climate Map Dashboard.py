@@ -891,7 +891,7 @@ def display_city_analysis(city, df, df_pred):
                 if selected_year == 2025:
                     months_in_year = df_pred[df_pred['year'] == 2025]['month'].unique()
                     if set(months_in_year).issuperset(range(7, 13)):
-                            year_label = "2025 2nd Semester"
+                            year_label = "2025 2nd half"
                     else:
                             year_label = "2025 Partial"
                 else:
