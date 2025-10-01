@@ -889,7 +889,6 @@ def display_city_analysis(city, df, df_pred):
                 coolest_month = year_data.loc[year_data['temperature'].idxmin(), 'month_name']
                 coolest_temp = year_data['temperature'].min()
                 if selected_year == 2025:
-                    # Check which months are available
                     months_in_year = df_pred[df_pred['year'] == 2025]['month'].unique()
                     if set(months_in_year).issuperset(range(7, 13)):
                             year_label = "2025 2nd Semester"
@@ -900,7 +899,7 @@ def display_city_analysis(city, df, df_pred):
                 
                 st.markdown(f"""
                     <div class="climate-info">
-                        <h4> {selected_year} Summary for {city}</h4>
+                        <h4> {year_label} Summary for {city}</h4>
                         <p><strong>Average Temperature:</strong> {avg_temp:.1f}°C</p>
                         <p><strong>Average Anomaly:</strong> {avg_anomaly:+.1f}°C above 1961-1990 baseline</p>
                         <p><strong>Hottest Month:</strong> {hottest_month} ({hottest_temp:.1f}°C)</p>
