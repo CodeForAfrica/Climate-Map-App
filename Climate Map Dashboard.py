@@ -748,18 +748,25 @@ if len(selected_cities) == 1:
     map_center = {"lat": city_info["latitude"], "lon": city_info["lng"]}
     map_zoom = 12
 
-fig_map = px.scatter_mapbox(
+fig_map = px.scatter_map(
     latest_data,
     lat="latitude",
     lon="lng",
     color="temperature",
     hover_name="city",
-    hover_data={"temperature": ":.1f", "country_name": True},
+    hover_data={
+        "temperature": ":.1f",
+        "country_name": True
+    },
     center=map_center,
     zoom=map_zoom,
-    #mapbox_style="open-street-map",
-    mapbox_style="carto-positron",
+    map_style="carto-positron",
     color_continuous_scale="RdBu_r",
+)
+
+fig_map.update_layout(
+    height=600,
+    margin={"r": 0, "t": 0, "l": 0, "b": 0}
 )
 
 # Set marker size after creation
